@@ -23,38 +23,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 /**
- * Fetch Session Notes by Client ID
- * Route: GET /api/session-notes/client/:clientId
- */
-router.get('/client/:clientId', async (req, res) => {
-  const { clientId } = req.params;
-
-  try {
-    // Find appointments for the client
-    const appointments = await Appointment.find({ client: clientId }).select('_id');
-
-    if (!appointments || appointments.length === 0) {
-      return res.status(404).json({ message: 'No appointments found for this client.' });
-    }
-
-    // Extract appointment IDs
-    const appointmentIds = appointments.map((appointment) => appointment._id);
-
-    // Find session notes for the client's appointments
-    const sessionNotes = await SessionNote.find({ appointmentId: { $in: appointmentIds } });
-
-    if (!sessionNotes || sessionNotes.length === 0) {
-      return res.status(404).json({ message: 'No session notes found for this client.' });
-    }
-
-    res.status(200).json(sessionNotes);
-  } catch (error) {
-    console.error('Error fetching session notes by client ID:', error);
-    res.status(500).json({ message: 'Error fetching session notes.' });
-  }
-});
-
-/**
  * Create or Update Session Notes
  * Route: POST /api/session-notes/:appointmentId
  */
