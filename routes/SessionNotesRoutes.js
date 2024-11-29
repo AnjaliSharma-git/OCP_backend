@@ -1,12 +1,12 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const SessionNote = require('../models/SessionNote'); // Assuming you have a SessionNote schema
-const Appointment = require('../models/Appointment'); // Assuming you have an Appointment schema
+const fs = require('fs');
+const SessionNote = require('../models/SessionNote'); // SessionNote schema
+const Appointment = require('../models/Appointment'); // Appointment schema
 const router = express.Router();
 
 // Ensure uploads directory exists
-const fs = require('fs');
 if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
     cb(null, './uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filenames
   },
 });
 const upload = multer({ storage: storage });
@@ -32,9 +32,9 @@ router.post('/:appointmentId', upload.single('file'), async (req, res) => {
   const file = req.file ? req.file.filename : null;
 
   try {
-    // Check if appointment exists
-    const appointment = await Appointment.findById(appointmentId);
-    if (!appointment) {
+    // Check if the appointment exists
+    const appointmentExists = await Appointment.exists({ _id: appointmentId });
+    if (!appointmentExists) {
       return res.status(404).json({ message: 'Appointment not found.' });
     }
 
@@ -48,13 +48,19 @@ router.post('/:appointmentId', upload.single('file'), async (req, res) => {
         file: file,
       });
     } else {
-      // Update the existing session note
+      // Update existing session note
       sessionNote.text = notes || sessionNote.text;
-      if (file) sessionNote.file = file;
+      if (file) {
+        // Delete old file if it exists
+        if (sessionNote.file) {
+          fs.unlinkSync(`./uploads/${sessionNote.file}`);
+        }
+        sessionNote.file = file;
+      }
     }
 
     await sessionNote.save();
-    res.status(200).json({ message: 'Session notes saved successfully.', sessionNote });
+    res.status(200).json({ message: 'Session notes saved successfully.' });
   } catch (error) {
     console.error('Error saving session notes:', error);
     res.status(500).json({ message: 'Error saving session notes.' });
@@ -65,7 +71,7 @@ router.post('/:appointmentId', upload.single('file'), async (req, res) => {
  * Fetch Session Notes by Appointment ID
  * Route: GET /api/session-notes/:appointmentId
  */
-router.get('/:appointmentId', async (req, res) => {
+router.get('/', async (req, res) => {
   const { appointmentId } = req.params;
 
   try {
@@ -75,7 +81,10 @@ router.get('/:appointmentId', async (req, res) => {
       return res.status(404).json({ message: 'Session notes not found.' });
     }
 
-    res.status(200).json(sessionNote);
+    res.status(200).json({
+      text: sessionNote.text,
+      file: sessionNote.file,
+    });
   } catch (error) {
     console.error('Error fetching session notes:', error);
     res.status(500).json({ message: 'Error fetching session notes.' });
@@ -100,10 +109,16 @@ router.put('/:appointmentId', upload.single('file'), async (req, res) => {
 
     // Update session note fields
     sessionNote.text = text || sessionNote.text;
-    if (file) sessionNote.file = file;
+    if (file) {
+      // Delete old file if it exists
+      if (sessionNote.file) {
+        fs.unlinkSync(`./uploads/${sessionNote.file}`);
+      }
+      sessionNote.file = file;
+    }
 
     await sessionNote.save();
-    res.status(200).json({ message: 'Session note updated successfully.', sessionNote });
+    res.status(200).json({ message: 'Session note updated successfully.' });
   } catch (error) {
     console.error('Error updating session note:', error);
     res.status(500).json({ message: 'Error updating session note.' });

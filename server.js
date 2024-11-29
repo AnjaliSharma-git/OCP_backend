@@ -18,8 +18,8 @@ app.use("/auth", authRoutes);
 const clientRoutes = require('./routes/clientRoutes');
 app.use('/api/client', clientRoutes);
 
-const counselorRoutes = require('./routes/counselorRoutes');
-app.use('/api/counselor', counselorRoutes);
+const counselorRoutes = require('./routes/CounselorRoutes');
+app.use('/api', counselorRoutes);
 
 const appointmentRoutes = require('./routes/appointmentRoutes');
 app.use('/api', appointmentRoutes); // Use /api for appointments-related routes
@@ -29,6 +29,9 @@ app.use('/api/chat', chatRoutes);
 
 const sessionNotesRoutes = require('./routes/SessionNotesRoutes');
 app.use('/api/session-notes', sessionNotesRoutes);
+
+const paymentRoutes = require('./routes/paymentRoutes')
+app.use('/api', paymentRoutes)
 
 
 // MongoDB Connection

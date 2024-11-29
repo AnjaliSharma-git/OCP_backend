@@ -1,5 +1,7 @@
-const express = require("express");
-const Counselor = require("../models/Counselor");
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const Counselor = require('../models/Counselor');
+const Appointment = require('../models/Appointment'); // Assuming Appointment model is already set up
 const router = express.Router();
 
 // Route to register a counselor
@@ -18,11 +20,14 @@ router.post("/register-counselor", async (req, res) => {
       return res.status(400).json({ message: "Counselor already exists" });
     }
 
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new counselor
     const newCounselor = new Counselor({
       name,
       email,
-      password, // Ideally hashed before saving (e.g., bcrypt.hash(password, salt))
+      password: hashedPassword,
       specialization,
       experience,
       availability,
@@ -37,46 +42,36 @@ router.post("/register-counselor", async (req, res) => {
 });
 
 // Route to get all counselors
-router.get("/", async (req, res) => {
+router.get('/counselors', async (req, res) => {
   try {
-    // Fetch counselors with specific fields
-    const counselors = await Counselor.find({}, "name specialization experience availability");
-    res.status(200).json(counselors); // Send counselor data to the client
+    const counselors = await Counselor.find(); // Get all counselors from the database
+    return res.status(200).json(counselors);
   } catch (error) {
-    console.error("Error fetching counselors:", error);
-    res.status(500).json({ message: "Error fetching counselors" });
+    console.error('Error fetching counselors:', error.message);
+    return res.status(500).json({ message: 'Failed to fetch counselors.' });
   }
 });
 
 // Route to schedule an appointment
-router.post("/schedule-appointment", async (req, res) => {
-  const { counselorId, clientId, sessionType, date, time } = req.body;
+const jwt = require('jsonwebtoken');
+const Client = require('../models/Client'); // Assuming you have a Client model
+
+// Middleware to authenticate the user and extract clientId from the token
+const authenticateClient = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided, authorization denied' });
+  }
 
   try {
-    if (!counselorId || !clientId || !sessionType || !date || !time) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const counselor = await Counselor.findById(counselorId);
-    if (!counselor) {
-      return res.status(404).json({ message: "Counselor not found" });
-    }
-
-    // Placeholder for actual appointment saving logic
-    const appointment = {
-      counselorId,
-      clientId,
-      sessionType,
-      date,
-      time,
-    };
-
-    res.status(201).json({ message: "Appointment scheduled successfully", appointment });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using the secret
+    req.clientId = decoded.clientId; // Store clientId in the request object
+    next();
   } catch (error) {
-    console.error("Error scheduling appointment:", error);
-    res.status(500).json({ message: "Server error while scheduling appointment" });
+    res.status(400).json({ message: 'Invalid token' });
   }
-});
+};
 
 
 module.exports = router;

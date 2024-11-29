@@ -91,7 +91,7 @@ const loginUser = async (req, res, role) => {
       message: `${role} logged in successfully`,
       token,
       user: {
-        id: user._id,
+        id: user._id, // Ensure the user ID is returned
         name: user.name,
         email: user.email,
         ...(role === "counselor" && { 
