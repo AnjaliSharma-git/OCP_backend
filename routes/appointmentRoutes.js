@@ -1,53 +1,59 @@
 const express = require('express');
 const Appointment = require('../models/Appointment');
-const Counselor = require('../models/Counselor');
-const Client = require('../models/Client');
-
 const router = express.Router();
 
-// Schedule an appointment
-router.post('/schedule', async (req, res) => {
-  const { counselorId, date, time, modeOfInteraction, clientId } = req.body;
+// POST /schedule-appointment
+router.post('/schedule-appointment', async (req, res) => {
+  const { counselorId, sessionType, date, time } = req.body;
+
+  // Validate if all necessary fields are provided
+  if (!counselorId || !sessionType || !date || !time) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
 
   try {
-    const counselor = await Counselor.findById(counselorId);
-    if (!counselor) {
-      return res.status(404).json({ message: 'Counselor not found' });
-    }
-
-    const client = await Client.findById(clientId);
-    if (!client) {
-      return res.status(404).json({ message: 'Client not found' });
-    }
-
-    const newAppointment = new Appointment({
-      counselorId,
+    // Create a new appointment
+    const appointment = new Appointment({
+      counselor: counselorId,
+      sessionType,
       date,
       time,
-      modeOfInteraction,
-      clientId
     });
 
-    await newAppointment.save();
-
-    client.appointments.push(newAppointment);
-    await client.save();
-
-    res.status(201).json(newAppointment);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    await appointment.save();
+    return res.status(200).json({ message: 'Appointment scheduled successfully!' });
+  } catch (error) {
+    console.error('Error scheduling appointment:', error.message);
+    return res.status(500).json({ message: 'Failed to schedule appointment. Please try again.' });
   }
 });
 
-// Get all appointments for a client
+// GET /appointments - Fetch all appointments
 router.get('/appointments', async (req, res) => {
   try {
-    const appointments = await Appointment.find({ clientId: req.clientId })
-      .populate('counselorId')
+    const appointments = await Appointment.find()
+      .populate('counselor', 'name specialization')
       .exec();
-    res.json(appointments);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(200).json(appointments);
+  } catch (error) {
+    console.error('Error fetching appointments:', error.message);
+    return res.status(500).json({ message: 'Failed to fetch appointments.' });
+  }
+});
+router.get('/appointments/:appointmentId', async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.appointmentId)
+      .populate('client')   // Populating the client field
+      .populate('counselor'); // Populating the counselor field
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    res.status(200).json(appointment);
+  } catch (error) {
+    console.error('Error fetching appointment:', error);
+    res.status(500).json({ message: 'Error fetching appointment details' });
   }
 });
 

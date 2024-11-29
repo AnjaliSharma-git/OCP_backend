@@ -2,24 +2,27 @@ const express = require("express");
 const Counselor = require("../models/Counselor");
 const router = express.Router();
 
-// Register counselor
+// Route to register a counselor
 router.post("/register-counselor", async (req, res) => {
   const { name, email, password, specialization, experience, availability } = req.body;
 
   try {
+    // Validate required fields
     if (!name || !email || !password || !specialization || !experience || !availability) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Check if counselor already exists
     const existingCounselor = await Counselor.findOne({ email });
     if (existingCounselor) {
       return res.status(400).json({ message: "Counselor already exists" });
     }
 
+    // Create new counselor
     const newCounselor = new Counselor({
       name,
       email,
-      password, // For simplicity; ideally hash this with bcrypt
+      password, // Ideally hashed before saving (e.g., bcrypt.hash(password, salt))
       specialization,
       experience,
       availability,
@@ -33,27 +36,33 @@ router.post("/register-counselor", async (req, res) => {
   }
 });
 
-// Get all counselors
-router.get("/counselor", async (req, res) => {
+// Route to get all counselors
+router.get("/", async (req, res) => {
   try {
-    const counselors = await Counselor.find({}, 'name specialization experience availability');
-    res.status(200).json(counselors); // Send the counselors' data to the frontend
+    // Fetch counselors with specific fields
+    const counselors = await Counselor.find({}, "name specialization experience availability");
+    res.status(200).json(counselors); // Send counselor data to the client
   } catch (error) {
     console.error("Error fetching counselors:", error);
     res.status(500).json({ message: "Error fetching counselors" });
   }
 });
 
-// Schedule an appointment (for example, save the appointment)
+// Route to schedule an appointment
 router.post("/schedule-appointment", async (req, res) => {
   const { counselorId, clientId, sessionType, date, time } = req.body;
 
   try {
+    if (!counselorId || !clientId || !sessionType || !date || !time) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     const counselor = await Counselor.findById(counselorId);
     if (!counselor) {
       return res.status(404).json({ message: "Counselor not found" });
     }
 
+    // Placeholder for actual appointment saving logic
     const appointment = {
       counselorId,
       clientId,
@@ -62,13 +71,12 @@ router.post("/schedule-appointment", async (req, res) => {
       time,
     };
 
-    // Save the appointment logic can go here
-
     res.status(201).json({ message: "Appointment scheduled successfully", appointment });
   } catch (error) {
     console.error("Error scheduling appointment:", error);
     res.status(500).json({ message: "Server error while scheduling appointment" });
   }
 });
+
 
 module.exports = router;

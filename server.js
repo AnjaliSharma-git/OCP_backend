@@ -8,8 +8,8 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors({ origin: 'http://localhost:3000' })); // Allow frontend to access the API
+app.use(bodyParser.json());  // Parse incoming JSON requests
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
@@ -18,11 +18,18 @@ app.use("/auth", authRoutes);
 const clientRoutes = require('./routes/clientRoutes');
 app.use('/api/client', clientRoutes);
 
-const counselorRoutes = require('./routes/CounselorRoutes');
+const counselorRoutes = require('./routes/counselorRoutes');
 app.use('/api/counselor', counselorRoutes);
 
 const appointmentRoutes = require('./routes/appointmentRoutes');
-app.use('/api/appointments', appointmentRoutes); // Updated to use /api/appointments for appointments
+app.use('/api', appointmentRoutes); // Use /api for appointments-related routes
+
+const chatRoutes = require('./routes/chatRoutes');
+app.use('/api/chat', chatRoutes);
+
+const sessionNotesRoutes = require('./routes/SessionNotesRoutes');
+app.use('/api/session-notes', sessionNotesRoutes);
+
 
 // MongoDB Connection
 mongoose
@@ -30,6 +37,6 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Server
+// Server Setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
