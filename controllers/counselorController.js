@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const Counselor = require("../models/Counselor");
 
-// Register Counselor
 exports.registerCounselor = async (req, res) => {
   const { name, email, password, specialization, experience, availability } = req.body;
 
@@ -30,7 +29,6 @@ exports.registerCounselor = async (req, res) => {
   }
 };
 
-// Update Counselor Availability
 exports.updateAvailability = async (req, res) => {
   const { id } = req.params;
   const { availability } = req.body;
@@ -51,7 +49,6 @@ exports.updateAvailability = async (req, res) => {
   }
 };
 
-// Get Counselors List
 exports.getCounselors = async (req, res) => {
   try {
     const counselors = await Counselor.find();
@@ -62,7 +59,6 @@ exports.getCounselors = async (req, res) => {
   }
 };
 
-// Handle Appointment Scheduling (simple example)
 exports.scheduleAppointment = async (req, res) => {
   const { counselorId, clientId, sessionType, date, time } = req.body;
 
@@ -80,8 +76,6 @@ exports.scheduleAppointment = async (req, res) => {
       return res.status(400).json({ message: "Counselor is not available at this time" });
     }
 
-    // Logic to save the appointment should go here (this can be saved in an Appointment model)
-    // For example, creating a new appointment in a database (you could add an Appointment model).
 
     res.status(201).json({ message: "Appointment scheduled successfully" });
   } catch (error) {

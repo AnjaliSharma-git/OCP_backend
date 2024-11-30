@@ -2,31 +2,27 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Appointment = require('../models/Appointment');
-const {verifyToken} = require('../middleware/auth');  // JWT verification middleware
+const {verifyToken} = require('../middleware/auth'); 
 
-// Create Appointment
 router.post('/appointments', verifyToken, async (req, res) => {
   try {
     const { counselor, sessionType, date, time } = req.body;
 
-    // Ensure all required fields are provided
+
     if (!counselor || !sessionType || !date || !time) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Create the appointment document
     const appointment = new Appointment({
-      clientId: req.user.id,  // From JWT token (authenticated user)
+      clientId: req.user.id,  
       counselor,
       sessionType,
       date,
       time
     });
 
-    // Save appointment to the database
     await appointment.save();
     
-    // Send response with detailed info
     res.status(200).json({
       message: 'Appointment created successfully',
       appointment: {

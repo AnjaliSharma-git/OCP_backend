@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 
-// Session Notes Schema
 const sessionNotesSchema = new mongoose.Schema({
   clientId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Client',  // Reference to Client model
+    ref: 'Client',  
     required: true 
   },
   appointmentId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Appointment',  // Reference to Appointment model
+    ref: 'Appointment', 
     required: true 
   },
   text: { 
@@ -17,7 +16,7 @@ const sessionNotesSchema = new mongoose.Schema({
     required: true 
   },
   file: { 
-    type: String  // URL or path to the file (optional)
+    type: String 
   },
   date: { 
     type: Date, 
@@ -25,5 +24,4 @@ const sessionNotesSchema = new mongoose.Schema({
   },
 });
 
-// Create and export the model
 module.exports = mongoose.model('SessionNotes', sessionNotesSchema);

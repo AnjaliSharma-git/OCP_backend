@@ -6,7 +6,7 @@ const paymentSchema = new mongoose.Schema({
   paymentMethod: { type: String, required: true },
   status: { type: String, enum: ['pending', 'succeeded', 'failed'], default: 'pending' },
   paymentDate: { type: Date, default: Date.now },
-  sessionId: { type: String, required: true }, // For payment session ID
+  sessionId: { type: String, required: true }, 
 });
 
 module.exports = mongoose.model("Payment", paymentSchema);

@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const AppointmentSchema = new mongoose.Schema({
   counselor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Counselor', // Reference to the Counselor model
+    ref: 'Counselor', 
     required: true,
   },
   client: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Client', // Reference to the Client model
+    ref: 'Client', 
     required: true,
   },
   sessionType: {

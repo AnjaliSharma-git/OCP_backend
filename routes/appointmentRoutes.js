@@ -1,28 +1,25 @@
 const express = require('express');
 const Appointment = require('../models/Appointment');
-const { verifyToken } = require('../middleware/auth'); // Verify token middleware
+const { verifyToken } = require('../middleware/auth'); 
+
 
 const router = express.Router();
 
-// POST /schedule-appointment - Schedule a new appointment
 router.post('/schedule-appointment', verifyToken, async (req, res) => {
   const { counselor, sessionType, date, time } = req.body;
-  const client = req.user.id; // Retrieved from the JWT via verifyToken middleware
+  const client = req.user.id; 
 
   try {
-    // Validate request data
     if (!counselor || !sessionType || !date || !time || !client) {
       return res.status(400).json({ message: 'All fields are required.' });
     }
 
-    // Validate date and time (future appointments only)
     const selectedDateTime = new Date(`${date}T${time}`);
     const now = new Date();
     if (selectedDateTime <= now) {
       return res.status(400).json({ message: 'Appointments must be scheduled for a future date and time.' });
     }
 
-    // Check for overlapping appointments
     const overlappingAppointment = await Appointment.findOne({
       counselor,
       date,
@@ -32,7 +29,6 @@ router.post('/schedule-appointment', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'The selected time slot is already booked.' });
     }
 
-    // Create and save the appointment
     const appointment = new Appointment({
       counselor,
       client,
@@ -49,12 +45,11 @@ router.post('/schedule-appointment', verifyToken, async (req, res) => {
   }
 });
 
-// GET /appointments - Fetch all appointments
 router.get('/appointments', verifyToken, async (req, res) => {
   try {
     const appointments = await Appointment.find()
-      .populate('counselor', 'name specialization') // Populate counselor details
-      .populate('client', 'name email') // Populate client details
+      .populate('counselor', 'name specialization')
+      .populate('client', 'name email') 
       .exec();
 
     if (!appointments.length) {
@@ -68,13 +63,12 @@ router.get('/appointments', verifyToken, async (req, res) => {
   }
 });
 
-// GET /appointments/counselor/:counselorId - Fetch appointments for a specific counselor
 router.get('/appointments/counselor/:counselorId', verifyToken, async (req, res) => {
   const { counselorId } = req.params;
 
   try {
     const appointments = await Appointment.find({ counselor: counselorId })
-      .populate('client', 'name email') // Populate client details
+      .populate('client', 'name email') 
       .exec();
 
     if (!appointments.length) {
@@ -88,14 +82,13 @@ router.get('/appointments/counselor/:counselorId', verifyToken, async (req, res)
   }
 });
 
-// GET /appointments/:appointmentId - Fetch appointment by ID
 router.get('/appointments/:appointmentId', verifyToken, async (req, res) => {
   const { appointmentId } = req.params;
 
   try {
     const appointment = await Appointment.findById(appointmentId)
-      .populate('counselor', 'name specialization') // Populate counselor details
-      .populate('client', 'name email') // Populate client details
+      .populate('counselor', 'name specialization') 
+      .populate('client', 'name email') 
       .exec();
 
     if (!appointment) {
