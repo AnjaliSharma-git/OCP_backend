@@ -1,39 +1,29 @@
 const mongoose = require('mongoose');
 
-const appointmentSchema = new mongoose.Schema({
-  counselorId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Counselor', 
-    required: true 
-  },
-  clientId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Client', 
-    required: true 
-  },
-  sessionType: { 
-    type: String, 
+const AppointmentSchema = new mongoose.Schema({
+  counselor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Counselor', // Reference to the Counselor model
     required: true,
-    enum: ['video_call', 'chat', 'email'], // Ensuring only valid session types are accepted
   },
-  date: { 
-    type: Date, 
-    required: true 
-  },
-  time: { 
-    type: String, 
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Client', // Reference to the Client model
     required: true,
-    match: /^(0[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM)$/ // Validates time format (HH:MM AM/PM)
   },
-  status: { 
-    type: String, 
-    default: 'scheduled', 
-    enum: ['scheduled', 'completed', 'canceled', 'missed'], // Valid status types
+  sessionType: {
+    type: String,
+    enum: ['video_call', 'chat', 'email'],
+    required: true,
   },
-}, {
-  timestamps: true, // Adds createdAt and updatedAt fields automatically
+  date: {
+    type: Date,
+    required: true,
+  },
+  time: {
+    type: String,
+    required: true,
+  },
 });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema);
-
-module.exports = Appointment;
+module.exports = mongoose.model('Appointment', AppointmentSchema);

@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const Counselor = require('../models/Counselor');
+const Client = require('../models/Client'); // Assuming you have a Client model
 const Appointment = require('../models/Appointment'); // Assuming Appointment model is already set up
 const router = express.Router();
 
@@ -41,20 +43,20 @@ router.post("/register-counselor", async (req, res) => {
   }
 });
 
-// Route to get all counselors
+// Route to get all counselors (with optional pagination)
 router.get('/counselors', async (req, res) => {
   try {
-    const counselors = await Counselor.find(); // Get all counselors from the database
+    const { page = 1, limit = 10 } = req.query;  // Default to page 1, limit 10
+    const counselors = await Counselor.find()
+      .skip((page - 1) * limit)
+      .limit(limit);
+
     return res.status(200).json(counselors);
   } catch (error) {
     console.error('Error fetching counselors:', error.message);
     return res.status(500).json({ message: 'Failed to fetch counselors.' });
   }
 });
-
-// Route to schedule an appointment
-const jwt = require('jsonwebtoken');
-const Client = require('../models/Client'); // Assuming you have a Client model
 
 // Middleware to authenticate the user and extract clientId from the token
 const authenticateClient = (req, res, next) => {
@@ -73,5 +75,44 @@ const authenticateClient = (req, res, next) => {
   }
 };
 
+// Route to schedule an appointment (uses the `authenticateClient` middleware)
+router.post('/appointments', authenticateClient, async (req, res) => {
+  const { counselor, sessionType, date, time } = req.body;
+  
+  try {
+    // Validate required fields
+    if (!counselor || !sessionType || !date || !time) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Create the appointment document
+    const appointment = new Appointment({
+      clientId: req.clientId,  // From JWT token
+      counselor,
+      sessionType,
+      date,
+      time
+    });
+
+    // Save appointment to the database
+    await appointment.save();
+    
+    // Send response with detailed info
+    res.status(200).json({
+      message: 'Appointment created successfully',
+      appointment: {
+        id: appointment._id,
+        counselor: appointment.counselor,
+        sessionType: appointment.sessionType,
+        date: appointment.date,
+        time: appointment.time,
+        clientId: appointment.clientId
+      }
+    });
+  } catch (err) {
+    console.error('Error scheduling appointment:', err);
+    res.status(500).json({ message: 'Failed to schedule the appointment. Try again later.' });
+  }
+});
 
 module.exports = router;

@@ -1,26 +1,27 @@
+require('dotenv').config(); // Load environment variables
 const express = require('express');
 const Stripe = require('stripe');
 const router = express.Router();
 
-// Initialize Stripe with your secret key
-const stripe = Stripe('sk_test_51QMP7DFT9hueBpGefJyUOYEXQX5wau9Cy7idp7QdU4KTgzmS7dNelWsDMzhV9JwM2PvLVJPijUq3WOFue1wpvKxX00dAyn0whx');
+// Initialize Stripe with the secret key from environment variables
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // POST route to create a Checkout Session
 router.post('/create-checkout-session', async (req, res) => {
-  const { amount } = req.body;
+  const { amount, currency = 'usd' } = req.body;
 
-  // Ensure the amount is valid (positive number)
-  if (!amount || amount <= 0) {
+  // Validate amount and currency
+  if (!amount || isNaN(amount) || amount <= 0) {
     return res.status(400).json({ error: 'Invalid amount.' });
   }
 
   try {
     // Create a Price object dynamically based on the amount received from the client
     const price = await stripe.prices.create({
-      unit_amount: amount * 100, // Convert to cents (Stripe expects the amount in the smallest currency unit)
-      currency: 'usd',
+      unit_amount: amount * 100, // Convert to cents
+      currency: currency,
       product_data: {
-        name: 'Session Payment', // This is the product description for the price
+        name: 'Session Payment', // Product description
       },
     });
 
@@ -30,19 +31,18 @@ router.post('/create-checkout-session', async (req, res) => {
       line_items: [
         {
           price: price.id, // Use the dynamically created price ID
-          quantity: 1, // Quantity of the item (1 in this case)
+          quantity: 1, // Quantity of the item
         },
       ],
-      mode: 'payment', // Indicating that this is a one-time payment session
-      success_url: 'http://localhost:3000/payment-success?session_id={CHECKOUT_SESSION_ID}', // Stripe will append the session ID here
-      cancel_url: 'http://localhost:3000/payment-cancel',
+      mode: 'payment', // One-time payment
+      success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`, // Dynamically use client URL
+      cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
     });
 
     // Return the session ID to the frontend
     res.json({ sessionId: session.id });
   } catch (err) {
     console.error('Error creating Checkout Session:', err);
-    // Handle specific Stripe error messages
     res.status(500).json({ error: 'Failed to create Checkout Session: ' + err.message });
   }
 });
