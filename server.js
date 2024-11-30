@@ -25,7 +25,7 @@ app.use(rateLimit({ // Rate limiting to prevent abuse
 const authRoutes = require("./routes/authRoutes");
 app.use("/auth", authRoutes);
 
-const clientRoutes = require('./routes/clientRoutes');
+const clientRoutes = require('./routes/ClientRoutes');
 app.use('/api/client', clientRoutes);
 
 const counselorRoutes = require('./routes/CounselorRoutes');
