@@ -10,22 +10,63 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; 
 const userExists = async (email, role) => {
+  if (!email || !role) {
+    throw new Error("Email and role are required");
+  }
+
   const Model = role === "client" ? Client : Counselor;
-  return await Model.findOne({ email });
+  if (!Model) {
+    throw new Error("Invalid role specified");
+  }
+
+  try {
+    const user = await Model.findOne({ email });
+    return user || null;
+  } catch (error) {
+    console.error("Error finding user:", error);
+    throw new Error("Database query failed");
+  }
 };
 
 const hashPassword = async (password) => {
-  return await bcrypt.hash(password, 10); 
+  if (!password) {
+    throw new Error("Password is required");
+  }
+  
+  try {
+    return await bcrypt.hash(password, 10);
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw new Error("Hashing password failed");
+  }
 };
 
 const generateToken = (user, role) => {
-  return jwt.sign({ id: user._id, role }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRY, 
-  });
+  if (!user || !role) {
+    throw new Error("User and role are required");
+  }
+
+  if (!user._id) {
+    throw new Error("User object must contain an _id property");
+  }
+
+  try {
+    return jwt.sign({ id: user._id, role }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRY, 
+    });
+  } catch (error) {
+    console.error("Error generating JWT:", error);
+    throw new Error("Generating JWT failed");
+  }
 };
 
 const registerUser = async (req, res, role) => {
   const { name, email, password, specialization, experience, availability } = req.body;
+  
+  if (!name || !email || !password || (role === "counselor" && (!specialization || experience == null || !availability))) {
+    return res.status(400).json({ message: "All required fields must be provided" });
+  }
+  
   const Model = role === "client" ? Client : Counselor;
 
   try {
@@ -35,6 +76,9 @@ const registerUser = async (req, res, role) => {
     }
 
     const hashedPassword = await hashPassword(password);
+    if (!hashedPassword) {
+      throw new Error("Failed to hash password");
+    }
 
     const newUser = new Model({
       name,
@@ -48,35 +92,46 @@ const registerUser = async (req, res, role) => {
     });
 
     await newUser.save();
-    res.status(201).json({ message: `${role} registered successfully` });
+    return res.status(201).json({ message: `${role} registered successfully` });
   } catch (error) {
     console.error(`Error registering ${role}:`, error);
-    res.status(500).json({ message: "Server error while registering user" });
+    return res.status(500).json({ message: "Server error while registering user" });
   }
 };
 
 const loginUser = async (req, res, role) => {
   const { email, password } = req.body;
+  if (!email || !password || !role) {
+    return res.status(400).json({ message: "Email, password, and role are required" });
+  }
+
   const Model = role === "client" ? Client : Counselor;
+  if (!Model) {
+    return res.status(400).json({ message: "Invalid role specified" });
+  }
 
   try {
-    const user = await Model.findOne({ email });
-    console.log(`Attempting to log in as ${role} with email: ${email}`);
+    const user = await Model.findOne({ email }).exec();
 
     if (!user) {
       return res.status(404).json({ message: `${role} not found with this email` });
     }
 
-    console.log(`${role} found:`, user);
+    if (!user.password) {
+      return res.status(500).json({ message: "User password is missing, contact support" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log(`Password match: ${isMatch}`);
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
     const token = generateToken(user, role);
+
+    if (!token) {
+      return res.status(500).json({ message: "Token generation failed" });
+    }
 
     res.status(200).json({
       message: `${role} logged in successfully`,

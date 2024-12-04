@@ -23,7 +23,6 @@ router.get('/chat/:appointmentId', verifyToken, async (req, res) => {
       });
       await chat.save();
     }
-
     return res.status(200).json(chat);
   } catch (error) {
     console.error('Error fetching chat:', error.message);
