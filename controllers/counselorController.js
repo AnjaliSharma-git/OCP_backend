@@ -4,6 +4,10 @@ const Counselor = require("../models/Counselor");
 exports.registerCounselor = async (req, res) => {
   const { name, email, password, specialization, experience, availability } = req.body;
 
+  if (!name || !email || !password || !specialization || experience == null || !availability) {
+    return res.status(400).json({ message: "All required fields must be provided" });
+  }
+
   try {
     const existingCounselor = await Counselor.findOne({ email });
     if (existingCounselor) {
@@ -33,10 +37,18 @@ exports.updateAvailability = async (req, res) => {
   const { id } = req.params;
   const { availability } = req.body;
 
+  if (!id || !availability) {
+    return res.status(400).json({ message: "All required fields must be provided" });
+  }
+
   try {
     const counselor = await Counselor.findById(id);
     if (!counselor) {
       return res.status(404).json({ message: "Counselor not found" });
+    }
+
+    if (!Array.isArray(availability) || availability.some((item) => !item.date || !item.startTime || !item.endTime)) {
+      return res.status(400).json({ message: "Invalid availability format" });
     }
 
     counselor.availability = availability;
@@ -62,10 +74,18 @@ exports.getCounselors = async (req, res) => {
 exports.scheduleAppointment = async (req, res) => {
   const { counselorId, clientId, sessionType, date, time } = req.body;
 
+  if (!counselorId || !clientId || !sessionType || !date || !time) {
+    return res.status(400).json({ message: "All required fields must be provided" });
+  }
+
   try {
     const counselor = await Counselor.findById(counselorId);
     if (!counselor) {
       return res.status(404).json({ message: "Counselor not found" });
+    }
+
+    if (!Array.isArray(counselor.availability) || counselor.availability.length === 0) {
+      return res.status(400).json({ message: "Counselor is not available" });
     }
 
     const isAvailable = counselor.availability.some(

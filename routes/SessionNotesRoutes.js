@@ -14,20 +14,69 @@ if (!fs.existsSync(uploadsDir)) {
 }
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadsDir);
+    if (!req || !req.user || !req.user.id || !file || !cb) {
+      return cb(new Error('Invalid arguments'));
+    }
+
+    if (!uploadsDir || !fs.existsSync(uploadsDir)) {
+      return cb(new Error('Uploads directory does not exist'));
+    }
+
+    if (typeof cb !== 'function') {
+      return cb(new Error('cb is not a function'));
+    }
+
+    try {
+      cb(null, uploadsDir);
+    } catch (error) {
+      console.error('Error in destination function:', error);
+      cb(error);
+    }
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); 
+    if (!req || !req.user || !req.user.id || !file || !cb) {
+      return cb(new Error('Invalid arguments'));
+    }
+
+    if (!file.originalname || typeof file.originalname !== 'string') {
+      return cb(new Error('Invalid file name'));
+    }
+
+    const fileName = `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`;
+    if (typeof fileName !== 'string' || !fileName) {
+      return cb(new Error('Failed to generate filename'));
+    }
+
+    try {
+      cb(null, fileName);
+    } catch (error) {
+      console.error('Error generating filename:', error);
+      cb(error);
+    }
   },
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.docx'];
-  const fileExt = path.extname(file.originalname).toLowerCase();
-  if (allowedTypes.includes(fileExt)) {
+  if (!req || !file || !cb) {
+    return cb(new Error('Invalid arguments'));
+  }
+
+  let fileExt;
+  try {
+    fileExt = path.extname(file.originalname)?.toLowerCase();
+    if (typeof fileExt !== 'string' || !fileExt) {
+      throw new Error('Invalid file extension');
+    }
+
+    const allowedTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.docx'];
+    if (!allowedTypes.includes(fileExt)) {
+      throw new Error('Invalid file type. Only .jpg, .jpeg, .png, .pdf, .docx allowed.');
+    }
+
     cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only .jpg, .jpeg, .png, .pdf, .docx allowed.'), false);
+  } catch (error) {
+    console.error('Error in file filter:', error);
+    cb(error);
   }
 };
 
