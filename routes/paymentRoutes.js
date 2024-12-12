@@ -12,9 +12,13 @@ router.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid amount.' });
   }
 
+  if (!process.env.CLIENT_URL) {
+    return res.status(500).json({ error: 'Client URL is not configured.' });
+  }
+
   try {
     const price = await stripe.prices.create({
-      unit_amount: amount * 100, 
+      unit_amount: amount * 100, // Amount in cents
       currency: currency,
       product_data: {
         name: 'Session Payment', 
