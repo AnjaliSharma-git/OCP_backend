@@ -19,9 +19,16 @@ const counselorSchema = new mongoose.Schema({
 
 counselorSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (err) {
+    console.error('Error during password hashing: ', err);
+    next(err);
+  }
 });
+
 
 counselorSchema.methods.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
