@@ -6,31 +6,25 @@ const Client = require('../models/Client');
 const Appointment = require('../models/Appointment');
 const router = express.Router();
 
-
 router.post("/register-counselor", async (req, res) => {
   const { name, email, password, specialization, experience, availability } = req.body;
 
   try {
-    // Validate required fields
     if (!name || !email || !password || !specialization || !experience || !availability || !Array.isArray(availability) || availability.length === 0) {
       return res.status(400).json({ message: "All fields are required and availability should be an array with at least one entry" });
     }
 
-    // Validate experience to ensure it's a number
     if (isNaN(experience) || experience <= 0) {
       return res.status(400).json({ message: "Experience must be a positive number" });
     }
 
-    // Check if counselor already exists
     const existingCounselor = await Counselor.findOne({ email });
     if (existingCounselor) {
       return res.status(400).json({ message: "Counselor already exists" });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save the counselor
     const newCounselor = new Counselor({
       name,
       email,
@@ -47,7 +41,6 @@ router.post("/register-counselor", async (req, res) => {
     res.status(500).json({ message: "Server error during counselor registration" });
   }
 });
-
 
 router.get('/counselors', async (req, res) => {
   try {
