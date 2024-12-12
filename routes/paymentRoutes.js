@@ -12,7 +12,7 @@ router.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid amount.' });
   }
 
-  if (!process.env.CLIENT_URL) {
+  if (!process.env.FRONTEND_URL) {
     return res.status(500).json({ error: 'Client URL is not configured.' });
   }
 
