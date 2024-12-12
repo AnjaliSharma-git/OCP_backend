@@ -8,17 +8,15 @@ const { verifyToken } = require("../middleware/auth");
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
-const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; 
+const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d";
+
+// Check if user already exists (client/counselor)
 const userExists = async (email, role) => {
   if (!email || !role) {
     throw new Error("Email and role are required");
   }
 
   const Model = role === "client" ? Client : Counselor;
-  if (!Model) {
-    throw new Error("Invalid role specified");
-  }
-
   try {
     const user = await Model.findOne({ email });
     return user || null;
@@ -28,6 +26,7 @@ const userExists = async (email, role) => {
   }
 };
 
+// Hash user password securely
 const hashPassword = async (password) => {
   if (!password) {
     throw new Error("Password is required");
@@ -41,6 +40,7 @@ const hashPassword = async (password) => {
   }
 };
 
+// Generate JWT Token for logged-in user
 const generateToken = (user, role) => {
   if (!user || !role) {
     throw new Error("User and role are required");
@@ -51,22 +51,21 @@ const generateToken = (user, role) => {
   }
 
   try {
-    return jwt.sign({ id: user._id, role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRY, 
-    });
+    return jwt.sign({ id: user._id, role }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
   } catch (error) {
     console.error("Error generating JWT:", error);
     throw new Error("Generating JWT failed");
   }
 };
 
+// Register user (client or counselor)
 const registerUser = async (req, res, role) => {
   const { name, email, password, specialization, experience, availability } = req.body;
-  
+
   if (!name || !email || !password || (role === "counselor" && (!specialization || experience == null || !availability))) {
     return res.status(400).json({ message: "All required fields must be provided" });
   }
-  
+
   const Model = role === "client" ? Client : Counselor;
 
   try {
@@ -76,19 +75,11 @@ const registerUser = async (req, res, role) => {
     }
 
     const hashedPassword = await hashPassword(password);
-    if (!hashedPassword) {
-      throw new Error("Failed to hash password");
-    }
-
     const newUser = new Model({
       name,
       email,
       password: hashedPassword,
-      ...(role === "counselor" && { 
-        specialization, 
-        experience, 
-        availability 
-      }),
+      ...(role === "counselor" && { specialization, experience, availability }),
     });
 
     await newUser.save();
@@ -99,17 +90,15 @@ const registerUser = async (req, res, role) => {
   }
 };
 
+// Log in user (client or counselor)
 const loginUser = async (req, res, role) => {
   const { email, password } = req.body;
+
   if (!email || !password || !role) {
     return res.status(400).json({ message: "Email, password, and role are required" });
   }
 
   const Model = role === "client" ? Client : Counselor;
-  if (!Model) {
-    return res.status(400).json({ message: "Invalid role specified" });
-  }
-
   try {
     const user = await Model.findOne({ email }).exec();
 
@@ -128,7 +117,6 @@ const loginUser = async (req, res, role) => {
     }
 
     const token = generateToken(user, role);
-
     if (!token) {
       return res.status(500).json({ message: "Token generation failed" });
     }
@@ -140,11 +128,7 @@ const loginUser = async (req, res, role) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        ...(role === "counselor" && { 
-          specialization: user.specialization,
-          experience: user.experience, 
-          availability: user.availability 
-        }),
+        ...(role === "counselor" && { specialization: user.specialization, experience: user.experience, availability: user.availability }),
       },
     });
   } catch (error) {
@@ -153,25 +137,15 @@ const loginUser = async (req, res, role) => {
   }
 };
 
+// Routes for client and counselor registration/login
+router.post("/register-client", (req, res) => registerUser(req, res, "client"));
+router.post("/register-counselor", (req, res) => registerUser(req, res, "counselor"));
+router.post("/login-client", (req, res) => loginUser(req, res, "client"));
+router.post("/login-counselor", (req, res) => loginUser(req, res, "counselor"));
 
-router.post("/register-client", (req, res) => {
-  registerUser(req, res, "client");
-});
-
-router.post("/register-counselor", (req, res) => {
-  registerUser(req, res, "counselor");
-});
-
-router.post("/login-client", (req, res) => {
-  loginUser(req, res, "client");
-});
-
-router.post("/login-counselor", (req, res) => {
-  loginUser(req, res, "counselor");
-});
-
+// Route to fetch user profile
 router.get("/profile", verifyToken, async (req, res) => {
-  const { role, id } = req.user; // From the decoded JWT
+  const { role, id } = req.user;  // Extract user role and ID from JWT
   const Model = role === "client" ? Client : Counselor;
 
   try {
@@ -185,11 +159,7 @@ router.get("/profile", verifyToken, async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        ...(role === "counselor" && { 
-          specialization: user.specialization,
-          experience: user.experience, 
-          availability: user.availability 
-        }),
+        ...(role === "counselor" && { specialization: user.specialization, experience: user.experience, availability: user.availability }),
       },
     });
   } catch (error) {
