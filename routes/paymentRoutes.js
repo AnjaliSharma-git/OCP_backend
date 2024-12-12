@@ -12,11 +12,7 @@ router.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid amount.' });
   }
 
-<<<<<<< HEAD
   if (!process.env.CLIENT_URL) {
-=======
-  if (!process.env.FRONTEND_URL) {
->>>>>>> d0d47123d652afc66b688e804fbc62957b58c05e
     return res.status(500).json({ error: 'Client URL is not configured.' });
   }
 
@@ -38,8 +34,8 @@ router.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'payment', 
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`, // Dynamically use client URL
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`, // Dynamically use client URL
+      cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
     });
 
     res.json({ sessionId: session.id });
