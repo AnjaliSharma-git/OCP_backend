@@ -211,7 +211,7 @@ if (user) {
     hashLength: user.password.length
   });
   const directCompare = await bcrypt.compare('123456', user.password);
-  console.log('Direct comparison result:', directCompare);
+  console.log('Direct comparison result:', directCompare);}
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
