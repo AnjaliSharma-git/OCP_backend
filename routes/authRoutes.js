@@ -206,14 +206,7 @@ const loginUser = async (req, res, role) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Rest of your login logic...
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: "Server error during login" });
-  }
-};
-
-    // Check counselor verification if applicable
+   // Check counselor verification if applicable
     if (role === "counselor" && !user.isVerified) {
       return res.status(403).json({ 
         message: "Your account is pending verification. Please wait for admin approval." 
