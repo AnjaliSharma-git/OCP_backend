@@ -148,6 +148,9 @@ const registerUser = async (req, res, role) => {
     });
 
     const savedUser = await newUser.save();
+    console.log('Saved user password check:', {
+  savedPasswordHash: savedUser.password
+});
     
     // Generate authentication token
     const token = generateToken(savedUser, role);
@@ -201,11 +204,14 @@ const loginUser = async (req, res, role) => {
 
     // Find user and log if found
     const user = await Model.findOne({ email: email.toLowerCase() });
-    console.log('User search result:', {
-      userFound: !!user,
-      userEmail: user?.email,
-      hasPassword: !!user?.password
-    });
+if (user) {
+  console.log('Retrieved user password check:', {
+    retrievedPasswordHash: user.password,
+    isString: typeof user.password === 'string',
+    hashLength: user.password.length
+  });
+  const directCompare = await bcrypt.compare('123456', user.password);
+  console.log('Direct comparison result:', directCompare);
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
