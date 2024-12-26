@@ -1,6 +1,5 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const Client = require("../models/Client");
 const Counselor = require("../models/Counselor");
 const { verifyToken } = require("../middleware/auth");
@@ -26,28 +25,6 @@ const userExists = async (email, role) => {
   } catch (error) {
     console.error("Error finding user:", error);
     throw new Error("Database query failed");
-  }
-};
-
-const hashPassword = async (password) => {
-  if (!password) {
-    throw new Error("Password is required");
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    console.log('Hashing details:', {
-      inputPassword: password,
-      generatedSalt: salt
-    });
-    const hash = await bcrypt.hash(password, salt);
-    console.log('Hash result:', {
-      fullHash: hash
-    });
-    return hash;
-  } catch (error) {
-    console.error("Error hashing password:", error);
-    throw new Error("Hashing password failed");
   }
 };
 
@@ -122,21 +99,17 @@ const registerUser = async (req, res, role) => {
         message: `${role} already exists with this email` 
       });
     }
-
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-   
     
-    // Create new user document
+    // Create new user document - password will be hashed by model middleware
     const newUser = new Model({
       name,
-      email: email.toLowerCase(), // Normalize email
-      password: hashedPassword,
+      email: email.toLowerCase(),
+      password, // Plain password - will be hashed by model middleware
       ...(role === "counselor" && { 
         specialization, 
-        experience: Number(experience), 
+        experience: Number(experience),
         availability: availability || [],
-        isVerified: false // Add verification status for counselors
+        isVerified: false
       })
     });
 
@@ -148,9 +121,6 @@ const registerUser = async (req, res, role) => {
     });
 
     const savedUser = await newUser.save();
-    console.log('Saved user password check:', {
-  savedPasswordHash: savedUser.password
-});
     
     // Generate authentication token
     const token = generateToken(savedUser, role);
@@ -185,41 +155,30 @@ const registerUser = async (req, res, role) => {
 
 const loginUser = async (req, res, role) => {
   const { email, password } = req.body;
-  console.log('Raw password details:', {
-    rawPassword: password,
-    trimmedLength: password.trim().length,
-    originalLength: password.length,
-    charCodes: Array.from(password).map(c => c.charCodeAt(0))
-  });
   
   try {
     const Model = role === "client" ? Client : Counselor;
     
-    // Log the login attempt details
     console.log('Login attempt:', {
       email: email,
       role: role,
       passwordProvided: !!password
     });
 
-    // Find user and log if found
+    // Find user
     const user = await Model.findOne({ email: email.toLowerCase() });
-if (user) {
-  console.log('Retrieved user password check:', {
-    retrievedPasswordHash: user.password,
-    isString: typeof user.password === 'string',
-    hashLength: user.password.length
-  });
-  const directCompare = await bcrypt.compare('123456', user.password);
-  console.log('Direct comparison result:', directCompare);}
+    console.log('User search result:', {
+      userFound: !!user,
+      userEmail: user?.email,
+      hasPassword: !!user?.password
+    });
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
- 
 
-    // Log password comparison
-    const isMatch = await bcrypt.compare(String(password), String(user.password));
+    // Use the model's comparePassword method
+    const isMatch = await user.comparePassword(password);
     console.log('Password comparison:', {
       isMatch: isMatch
     });
@@ -228,7 +187,7 @@ if (user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-   // Check counselor verification if applicable
+    // Check counselor verification if applicable
     if (role === "counselor" && !user.isVerified) {
       return res.status(403).json({ 
         message: "Your account is pending verification. Please wait for admin approval." 
