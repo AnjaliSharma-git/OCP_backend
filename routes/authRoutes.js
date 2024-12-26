@@ -36,7 +36,15 @@ const hashPassword = async (password) => {
   
   try {
     const salt = await bcrypt.genSalt(10);
-    return await bcrypt.hash(password, salt);
+    console.log('Hashing details:', {
+      inputPassword: password,
+      generatedSalt: salt
+    });
+    const hash = await bcrypt.hash(password, salt);
+    console.log('Hash result:', {
+      fullHash: hash
+    });
+    return hash;
   } catch (error) {
     console.error("Error hashing password:", error);
     throw new Error("Hashing password failed");
@@ -117,10 +125,7 @@ const registerUser = async (req, res, role) => {
 
     // Hash password
     const hashedPassword = await hashPassword(password);
-    console.log('Password hashing:', {
-  originalPassword: password,
-  hashedResult: hashedPassword.substring(0, 10) + '...' // Log only first 10 chars for security
-});
+   
     
     // Create new user document
     const newUser = new Model({
@@ -205,18 +210,7 @@ const loginUser = async (req, res, role) => {
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    // Add this before the main comparison in loginUser
-const testPassword = "123456";
-const testHash = user.password;
-console.log('Test comparison:', {
-  testResult: await bcrypt.compare(testPassword, testHash),
-  actualResult: await bcrypt.compare(String(password), String(user.password))
-});
-    console.log('Password debug:', {
-  providedPasswordLength: String(password).length,
-  storedHashLength: String(user.password).length,
-  storedHashPrefix: String(user.password).substring(0, 10) + '...'
-});
+ 
 
     // Log password comparison
     const isMatch = await bcrypt.compare(String(password), String(user.password));
