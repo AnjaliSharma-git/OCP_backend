@@ -172,33 +172,46 @@ const registerUser = async (req, res, role) => {
 };
 
 const loginUser = async (req, res, role) => {
-  console.log(`Login attempt for ${role}:`, { email: req.body.email });
-
   const { email, password } = req.body;
-
+  
   try {
-    // Input validation
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
-
     const Model = role === "client" ? Client : Counselor;
+    
+    // Log the login attempt details
+    console.log('Login attempt:', {
+      email: email,
+      role: role,
+      passwordProvided: !!password
+    });
 
-    // Find user
+    // Find user and log if found
     const user = await Model.findOne({ email: email.toLowerCase() });
-    console.log('User found:', { found: !!user, email });
+    console.log('User search result:', {
+      userFound: !!user,
+      userEmail: user?.email,
+      hasPassword: !!user?.password
+    });
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Verify password
+    // Log password comparison
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match:', isMatch);
+    console.log('Password comparison:', {
+      isMatch: isMatch
+    });
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    // Rest of your login logic...
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: "Server error during login" });
+  }
+};
 
     // Check counselor verification if applicable
     if (role === "counselor" && !user.isVerified) {
