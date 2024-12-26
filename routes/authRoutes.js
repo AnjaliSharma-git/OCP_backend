@@ -177,6 +177,12 @@ const registerUser = async (req, res, role) => {
 
 const loginUser = async (req, res, role) => {
   const { email, password } = req.body;
+  console.log('Raw password details:', {
+    rawPassword: password,
+    trimmedLength: password.trim().length,
+    originalLength: password.length,
+    charCodes: Array.from(password).map(c => c.charCodeAt(0))
+  });
   
   try {
     const Model = role === "client" ? Client : Counselor;
@@ -199,6 +205,13 @@ const loginUser = async (req, res, role) => {
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    // Add this before the main comparison in loginUser
+const testPassword = "123456";
+const testHash = user.password;
+console.log('Test comparison:', {
+  testResult: await bcrypt.compare(testPassword, testHash),
+  actualResult: await bcrypt.compare(String(password), String(user.password))
+});
     console.log('Password debug:', {
   providedPasswordLength: String(password).length,
   storedHashLength: String(user.password).length,
