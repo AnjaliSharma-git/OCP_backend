@@ -117,6 +117,10 @@ const registerUser = async (req, res, role) => {
 
     // Hash password
     const hashedPassword = await hashPassword(password);
+    console.log('Password hashing:', {
+  originalPassword: password,
+  hashedResult: hashedPassword.substring(0, 10) + '...' // Log only first 10 chars for security
+});
     
     // Create new user document
     const newUser = new Model({
@@ -195,6 +199,11 @@ const loginUser = async (req, res, role) => {
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    console.log('Password debug:', {
+  providedPasswordLength: String(password).length,
+  storedHashLength: String(user.password).length,
+  storedHashPrefix: String(user.password).substring(0, 10) + '...'
+});
 
     // Log password comparison
     const isMatch = await bcrypt.compare(String(password), String(user.password));
