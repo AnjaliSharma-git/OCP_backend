@@ -61,7 +61,6 @@ const registerUser = async (req, res, role) => {
   const { name, email, password, specialization, experience, availability } = req.body;
   
   try {
-    // Input validation
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
@@ -76,13 +75,11 @@ const registerUser = async (req, res, role) => {
       });
     }
 
-    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // Password strength validation
     if (password.length < 6) {
       return res.status(400).json({ 
         message: "Password must be at least 6 characters long" 
@@ -91,7 +88,6 @@ const registerUser = async (req, res, role) => {
 
     const Model = role === "client" ? Client : Counselor;
 
-    // Check for existing user
     const existingUser = await userExists(email, role);
     if (existingUser) {
       console.log('User already exists:', email);
@@ -100,16 +96,14 @@ const registerUser = async (req, res, role) => {
       });
     }
     
-    // Create new user document - password will be hashed by model middleware
     const newUser = new Model({
       name,
       email: email.toLowerCase(),
-      password, // Plain password - will be hashed by model middleware
+      password,
       ...(role === "counselor" && { 
         specialization, 
         experience: Number(experience),
-        availability: availability || [],
-        isVerified: false
+        availability: availability || []
       })
     });
 
@@ -121,13 +115,10 @@ const registerUser = async (req, res, role) => {
     });
 
     const savedUser = await newUser.save();
-    
-    // Generate authentication token
     const token = generateToken(savedUser, role);
     
     console.log('Registration successful:', { userId: savedUser._id, role });
 
-    // Send success response
     return res.status(201).json({ 
       message: `${role} registered successfully`,
       token,
@@ -138,8 +129,7 @@ const registerUser = async (req, res, role) => {
         ...(role === "counselor" && {
           specialization: savedUser.specialization,
           experience: savedUser.experience,
-          availability: savedUser.availability,
-          isVerified: savedUser.isVerified
+          availability: savedUser.availability
         })
       }
     });
@@ -165,7 +155,6 @@ const loginUser = async (req, res, role) => {
       passwordProvided: !!password
     });
 
-    // Find user
     const user = await Model.findOne({ email: email.toLowerCase() });
     console.log('User search result:', {
       userFound: !!user,
@@ -177,7 +166,6 @@ const loginUser = async (req, res, role) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Use the model's comparePassword method
     const isMatch = await user.comparePassword(password);
     console.log('Password comparison:', {
       isMatch: isMatch
@@ -187,17 +175,8 @@ const loginUser = async (req, res, role) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Check counselor verification if applicable
-    if (role === "counselor" && !user.isVerified) {
-      return res.status(403).json({ 
-        message: "Your account is pending verification. Please wait for admin approval." 
-      });
-    }
-
-    // Generate authentication token
     const token = generateToken(user, role);
 
-    // Send success response
     res.status(200).json({
       message: `${role} logged in successfully`,
       token,
@@ -208,8 +187,7 @@ const loginUser = async (req, res, role) => {
         ...(role === "counselor" && {
           specialization: user.specialization,
           experience: user.experience,
-          availability: user.availability,
-          isVerified: user.isVerified
+          availability: user.availability
         })
       }
     });
@@ -248,8 +226,7 @@ const verifyUserToken = async (req, res) => {
         ...(decoded.role === "counselor" && {
           specialization: user.specialization,
           experience: user.experience,
-          availability: user.availability,
-          isVerified: user.isVerified
+          availability: user.availability
         })
       }
     });
@@ -259,14 +236,12 @@ const verifyUserToken = async (req, res) => {
   }
 };
 
-// Routes
 router.post("/register-client", (req, res) => registerUser(req, res, "client"));
 router.post("/register-counselor", (req, res) => registerUser(req, res, "counselor"));
 router.post("/login-client", (req, res) => loginUser(req, res, "client"));
 router.post("/login-counselor", (req, res) => loginUser(req, res, "counselor"));
 router.get("/verify-token", verifyUserToken);
 
-// Protected route example
 router.get("/profile", verifyToken, async (req, res) => {
   const { role, id } = req.user;
   const Model = role === "client" ? Client : Counselor;
